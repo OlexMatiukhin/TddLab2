@@ -20,9 +20,9 @@ public class AuditMetadata {
     private LocalDateTime createdAt;
     @CreatedBy
     private String createdBy;
-    @LastModifiedBy
-    private LocalDateTime lastModifiedDate;
     @LastModifiedDate
+    private LocalDateTime lastModifiedDate;
+    @LastModifiedBy
     private String lastModifiedBy;
 
 }

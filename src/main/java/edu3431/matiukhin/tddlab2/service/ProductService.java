@@ -13,9 +13,12 @@ import edu3431.matiukhin.tddlab2.repository.ProductRepository;
 import edu3431.matiukhin.tddlab2.request.CreateProductRequest;
 import edu3431.matiukhin.tddlab2.request.ProductRequest;
 import edu3431.matiukhin.tddlab2.request.UpdateProductRequest;
+import edu3431.matiukhin.tddlab2.response.ApiResponse;
+import edu3431.matiukhin.tddlab2.response.BaseMetaData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -97,6 +100,53 @@ public class ProductService {
         return new Product(product.category(), product.type(), product.name(), product.price(), product.code(), product.description());
     }
 
+
+    //========================
+    public ApiResponse<BaseMetaData, ProductRequest> getByIdAsApiResponse(String id) {
+        Product productPersisted = itemRepository.findById(id).orElse(null);
+        if (productPersisted == null) {
+            BaseMetaData meta = new BaseMetaData(404, false);
+            meta.setErrorMessage("Not found");
+            return new ApiResponse<>(meta, Collections.emptyList());
+        }
+        ProductRequest productRequest = fromProductToProductRequest(productPersisted);
+        BaseMetaData baseMetaData = new BaseMetaData();
+        ApiResponse<BaseMetaData, ProductRequest> response = new ApiResponse<>(baseMetaData, productRequest);
+        return response;
+    }
+
+    public  ApiResponse<BaseMetaData, ProductRequest> getAllAsApiResponse() {
+        List<Product> products = itemRepository.findAll();
+        List <ProductRequest> productRequestList=products.stream()
+                .map(this::fromProductToProductRequest)
+                .collect(Collectors.toList());
+        BaseMetaData baseMetaData = new BaseMetaData();
+        ApiResponse<BaseMetaData, ProductRequest> response = new ApiResponse<>(baseMetaData, productRequestList);
+        return response;
+    }
+
+    public  ApiResponse<BaseMetaData, ProductRequest> updateAsApiResponse(ProductRequest productRequest) {
+        Product itemPersisted = itemRepository.findById(productRequest.id()).orElse(null);
+        if (itemPersisted != null) {
+            Product itemToUpdate =Product.builder()
+                    .id(productRequest.id())
+                    .category(productRequest.category())
+                    .type(productRequest.type())
+                    .name(productRequest.name())
+                    .price(productRequest.price())
+                    .code(productRequest.code())
+                    .description(productRequest.description())
+                    .build();
+            itemRepository.save(itemToUpdate);
+            ProductRequest productRequestUpdated= fromProductToProductRequest(itemToUpdate);
+            BaseMetaData baseMetaData = new BaseMetaData();
+            ApiResponse<BaseMetaData, ProductRequest> response = new ApiResponse<>(baseMetaData, productRequestUpdated);
+            return response;
+        }
+        BaseMetaData meta = new BaseMetaData(404, false);
+        meta.setErrorMessage("Not found");
+        return new ApiResponse<>(meta, Collections.emptyList());
+    }
 
 
 }
