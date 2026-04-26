@@ -11,16 +11,18 @@ package edu3431.matiukhin.tddlab2.service;/*
 import edu3431.matiukhin.tddlab2.model.Product;
 import edu3431.matiukhin.tddlab2.repository.ProductRepository;
 import edu3431.matiukhin.tddlab2.request.CreateProductRequest;
+import edu3431.matiukhin.tddlab2.request.ItemPageRequest;
 import edu3431.matiukhin.tddlab2.request.ProductRequest;
 import edu3431.matiukhin.tddlab2.request.UpdateProductRequest;
 import edu3431.matiukhin.tddlab2.response.ApiResponse;
 import edu3431.matiukhin.tddlab2.response.BaseMetaData;
+import edu3431.matiukhin.tddlab2.response.PaginationMetaData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.*;
 
 @Service
 @RequiredArgsConstructor
@@ -147,6 +149,45 @@ public class ProductService {
         meta.setErrorMessage("Not found");
         return new ApiResponse<>(meta, Collections.emptyList());
     }
+
+
+
+
+    public ApiResponse<PaginationMetaData, Product> getItemsPage(ItemPageRequest request){
+
+        Pageable pageable = PageRequest.of(request.page(), request.size(),
+                Sort.by(Sort.Direction.DESC, "id"));
+
+        Page<Product> page = itemRepository.findAll(pageable);
+
+        PaginationMetaData metaData = new PaginationMetaData();
+        metaData.setCode(200);
+        // TODO
+        metaData.setNumber(page.getNumber());
+        metaData.setSize(page.getSize());
+        metaData.setTotalPages(page.getTotalPages());
+        metaData.setTotalElements(page.getTotalElements());
+        metaData.setLast(page.isLast());
+        metaData.setFirst(page.isFirst());
+        //TODO
+        ApiResponse<PaginationMetaData, Product> response =
+                new ApiResponse<>(metaData, page.getContent());
+        if (page.getTotalPages() > 0 && request.page() >= page.getTotalPages()) {
+            metaData.setCode(400);
+            metaData.setSuccess(false);
+            metaData.setErrorMessage("Warning: page value is out of range");
+            return new ApiResponse<>(metaData, page.getContent());
+        }
+        if(page.isEmpty()){
+            metaData.setCode(400);
+            metaData.setSuccess(false);
+            metaData.setErrorMessage("No items found");
+            return new ApiResponse<>(metaData, page.getContent());
+        }
+
+        return response;
+    }
+
 
 
 }
