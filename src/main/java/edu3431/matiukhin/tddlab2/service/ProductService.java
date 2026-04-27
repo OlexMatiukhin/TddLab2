@@ -184,6 +184,9 @@ public class ProductService {
             metaData.setErrorMessage("No items found");
             return new ApiResponse<>(metaData, page.getContent());
         }
+        metaData.setCode(200);
+        metaData.setSuccess(true);
+        metaData.setErrorMessage(null);
 
         return response;
     }
