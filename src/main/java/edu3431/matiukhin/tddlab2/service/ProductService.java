@@ -18,16 +18,34 @@ import edu3431.matiukhin.tddlab2.response.ApiResponse;
 import edu3431.matiukhin.tddlab2.response.BaseMetaData;
 import edu3431.matiukhin.tddlab2.response.PaginationMetaData;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.*;
 
+
+
 @Service
 @RequiredArgsConstructor
 public class ProductService {
     private final ProductRepository itemRepository;
+    private final MongoTemplate mongoTemplate;
+    private PaginationMetaData buildMetaData(Page<Product> page) {
+        PaginationMetaData metaData = new PaginationMetaData();
+
+        metaData.setNumber(page.getNumber());
+        metaData.setSize(page.getSize());
+        metaData.setTotalPages(page.getTotalPages());
+        metaData.setTotalElements(page.getTotalElements());
+        metaData.setLast(page.isLast());
+        metaData.setFirst(page.isFirst());
+
+        return metaData;
+    }
 
     // Optional hardcoded items for testing
     /*public List<Product> items = new ArrayList();
@@ -160,35 +178,53 @@ public class ProductService {
 
         Page<Product> page = itemRepository.findAll(pageable);
 
-        PaginationMetaData metaData = new PaginationMetaData();
-        metaData.setCode(200);
-        // TODO
-        metaData.setNumber(page.getNumber());
-        metaData.setSize(page.getSize());
-        metaData.setTotalPages(page.getTotalPages());
-        metaData.setTotalElements(page.getTotalElements());
-        metaData.setLast(page.isLast());
-        metaData.setFirst(page.isFirst());
-        //TODO
-        ApiResponse<PaginationMetaData, Product> response =
-                new ApiResponse<>(metaData, page.getContent());
-        if (page.getTotalPages() > 0 && request.page() >= page.getTotalPages()) {
-            metaData.setCode(400);
-            metaData.setSuccess(false);
-            metaData.setErrorMessage("Warning: page value is out of range");
-            return new ApiResponse<>(metaData, page.getContent());
-        }
-        if(page.isEmpty()){
+        if (page.isEmpty() && page.getTotalElements() == 0) {
+            PaginationMetaData metaData = buildMetaData(page);
             metaData.setCode(400);
             metaData.setSuccess(false);
             metaData.setErrorMessage("No items found");
+
             return new ApiResponse<>(metaData, page.getContent());
         }
+
+        if (page.getTotalPages() > 0 && request.page() >= page.getTotalPages()) {
+            //log.warn("out of range");
+            long total = itemRepository.count();
+
+            int totalPages = (int) Math.ceil((double) total / request.size());
+            int lastPageNumber = totalPages - 1;
+            long skip = Math.max(0, total - request.size());
+
+            Query query = new Query()
+                    .with(Sort.by(Sort.Direction.DESC, "id"))
+                    .skip(skip)
+                    .limit(request.size());
+
+            List<Product> content = mongoTemplate.find(query, Product.class);
+
+            PaginationMetaData metaData = new PaginationMetaData();
+            metaData.setCode(404);
+            metaData.setSuccess(false);
+            metaData.setErrorMessage("Maximal page for the size is " + totalPages);
+
+            metaData.setNumber(lastPageNumber);
+            metaData.setSize(request.size());
+            metaData.setTotalElements(total);
+            metaData.setTotalPages(totalPages);
+            metaData.setLast(true);
+            metaData.setFirst(lastPageNumber == 0);
+
+            return new ApiResponse<>(metaData, content);
+        }
+        //TODO
+
+
+        PaginationMetaData metaData = buildMetaData(page);
         metaData.setCode(200);
         metaData.setSuccess(true);
         metaData.setErrorMessage(null);
 
-        return response;
+        return new ApiResponse<>(metaData, page.getContent());
     }
 
 

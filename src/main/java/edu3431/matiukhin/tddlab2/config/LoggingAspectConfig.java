@@ -6,6 +6,8 @@ package edu3431.matiukhin.tddlab2.config;/*
 @since 27.04.2026 - 09 - 19
 */
 
+import edu3431.matiukhin.tddlab2.response.ApiResponse;
+import edu3431.matiukhin.tddlab2.response.PaginationMetaData;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
@@ -41,9 +43,18 @@ public class LoggingAspectConfig {
     public void logAfterMethod(JoinPoint joinPoint, Object result) {
         String className = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
+        if ("getItemsPage".equals(methodName) && result instanceof ApiResponse<?,?> response)
+        {
+            Object meta = response.getMeta();
 
+            if (meta instanceof PaginationMetaData paginationMetaData
+                    && paginationMetaData.getCode() == 404) {
+                log.warn("Out of range");
+            }
+        }
         log.info("Method: {}.{} completed successfully with result: {}",
                 className, methodName, result);
+
     }
 
 }

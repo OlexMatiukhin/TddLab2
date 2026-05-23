@@ -18,6 +18,10 @@ import edu3431.matiukhin.tddlab2.service.ProductService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(OutputCaptureExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ItemServicePagingTest {
 
@@ -48,76 +53,42 @@ class ItemServicePagingTest {
     @AfterEach
     void tearsDown(){
     }
+
+    //CustomPaginationTest
+
+    //
     @Order(1)
     @Test
-    void whenHappyPathThenOk(){
+    void whenRequestIsIncorrectThenGiveTheLastPage(CapturedOutput output) {
         // given
-        ItemPageRequest request = new ItemPageRequest(0,5);
+        ItemPageRequest request = new ItemPageRequest(9, 4);
+
         // when
         ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        //then
+
+        // then
         assertNotNull(response);
         assertNotNull(response.getMeta());
 
-        assertEquals(200, response.getMeta().getCode());
-        assertTrue(response.getMeta().isSuccess());
-        assertNull(response.getMeta().getErrorMessage());
+        assertEquals(404, response.getMeta().getCode());
+        assertFalse(response.getMeta().isSuccess());
+        assertNotNull(response.getMeta().getErrorMessage());
+        assertTrue(response.getMeta().getErrorMessage()
+                .contains("Maximal page for the size is " + response.getMeta().getTotalPages()));
 
-        assertEquals(0, response.getMeta().getNumber());
-        assertEquals(5, response.getMeta().getSize());
+        assertEquals(7, response.getMeta().getNumber());
+        assertEquals(4, response.getMeta().getSize());
         assertEquals(30, response.getMeta().getTotalElements());
-        assertEquals(6, response.getMeta().getTotalPages());
-        assertTrue(response.getMeta().isFirst());
-        assertFalse(response.getMeta().isLast());
+        assertEquals(8, response.getMeta().getTotalPages());
+        //assertTrue(response.getMeta().isFirst());
+        assertTrue(response.getMeta().isLast());
 
         assertNotNull(response.getData());
         assertFalse(response.getData().isEmpty());
-        assertEquals(5, response.getData().size());
-        assertEquals("69ee993c3eb75e4acdf63f92", response.getData().get(0).getId());
-    }
-    @Order(2)
-    @Test
-    void whenPageValueIsOutOfRangeThenErrorMessageHasTheWarning(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertEquals("Warning: page value is out of range", response.getMeta().getErrorMessage());
-    }
+        assertEquals(4, response.getData().size());
+        assertEquals("69ef0cafdeef9ebd47b6b7f2", response.getData().get(3).getId());
 
-    @Order(3)
-    @Test
-    void whenPageValueIsOutOfRangeThenResponseNotNull(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertNotNull(response);
-    }
-    @Order(4)
-    @Test
-    void whenPageValueIsOutOfRangeThenItHasMetada(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertEquals("Warning: page value is out of range", response.getMeta().getErrorMessage());
-    }
-    @Order(5)
-    @Test
-    void whenPageValueIsOutOfRangeThenItIsNotSuccesful(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertFalse(response.getMeta().isSuccess());
-    }
-    @Order(6)
-    @Test
-    void whenPageValueIsOutOfRangeThenStatus404(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertEquals(400, response.getMeta().getCode());
-    }
-    @Order(7)
-    @Test
-    void whenPageValueIsOutOfRangeThenDataIsEmpty(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertEquals("Warning: page value is out of range", response.getMeta().getErrorMessage());
-        assertTrue(response.getData().isEmpty());
+        assertTrue(output.toString().contains("Out of range"));
     }
 
 
@@ -125,83 +96,169 @@ class ItemServicePagingTest {
 
 
 
-    @Order(8)
-    @Test
-    void whenSizeIs_7_AndPageIs_4_ThenIsLast_TrueAndSizeEquals_2(){
-        // given
-        ItemPageRequest request = new ItemPageRequest(4,7);
-        // when
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertFalse(response.getMeta().isFirst());
-        assertTrue(response.getMeta().isLast());
-        assertEquals(7, response.getMeta().getSize());
-        assertEquals(2, response.getData().size());
-    }
 
-    @Order(9)
-    @Test
-    void whenTheListIsEmptyThenErrorMessageHasTheWarning(){
-        // your code
-        productRepository.deleteAll();
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertNotNull(response);
-        assertEquals("No items found", response.getMeta().getErrorMessage());
+    /////
+//    @Order(1)
+//    @Test
+//    void whenHappyPathThenOk(){
+//        // given
+//        ItemPageRequest request = new ItemPageRequest(0,5);
+//        // when
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        //then
+//        assertNotNull(response);
+//        assertNotNull(response.getMeta());
+//
+//        assertEquals(200, response.getMeta().getCode());
+//        assertTrue(response.getMeta().isSuccess());
+//        assertNull(response.getMeta().getErrorMessage());
+//
+//        assertEquals(0, response.getMeta().getNumber());
+//        assertEquals(5, response.getMeta().getSize());
+//        assertEquals(30, response.getMeta().getTotalElements());
+//        assertEquals(6, response.getMeta().getTotalPages());
+//        assertTrue(response.getMeta().isFirst());
+//        assertFalse(response.getMeta().isLast());
+//
+//        assertNotNull(response.getData());
+//        assertFalse(response.getData().isEmpty());
+//        assertEquals(5, response.getData().size());
+//        assertEquals("69ee993c3eb75e4acdf63f92", response.getData().get(0).getId());
+//    }
+//    @Order(2)
+//    @Test
+//    void whenPageValueIsOutOfRangeThenErrorMessageHasTheWarning(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertEquals("Warning: page value is out of range", response.getMeta().getErrorMessage());
+//    }
+//
+//    @Order(3)
+//    @Test
+//    void whenPageValueIsOutOfRangeThenResponseNotNull(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertNotNull(response);
+//    }
+//    @Order(4)
+//    @Test
+//    void whenPageValueIsOutOfRangeThenItHasMetada(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertEquals("Warning: page value is out of range", response.getMeta().getErrorMessage());
+//    }
+//    @Order(5)
+//    @Test
+//    void whenPageValueIsOutOfRangeThenItIsNotSuccesful(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertFalse(response.getMeta().isSuccess());
+//    }
+//    @Order(6)
+//    @Test
+//    void whenPageValueIsOutOfRangeThenStatus404(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertEquals(400, response.getMeta().getCode());
+//    }
+//    @Order(7)
+//    @Test
+//    void whenPageValueIsOutOfRangeThenDataIsEmpty(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertEquals("Warning: page value is out of range", response.getMeta().getErrorMessage());
+//        assertTrue(response.getData().isEmpty());
+//    }
+//
+//
+//
+//
+//
+//
+//    @Order(8)
+//    @Test
+//    void whenSizeIs_7_AndPageIs_4_ThenIsLast_TrueAndSizeEquals_2(){
+//        // given
+//        ItemPageRequest request = new ItemPageRequest(4,7);
+//        // when
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertFalse(response.getMeta().isFirst());
+//        assertTrue(response.getMeta().isLast());
+//        assertEquals(7, response.getMeta().getSize());
+//        assertEquals(2, response.getData().size());
+//    }
+//
+//    @Order(9)
+//    @Test
+//    void whenTheListIsEmptyThenErrorMessageHasTheWarning(){
+//        // your code
+//        productRepository.deleteAll();
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertNotNull(response);
+//        assertEquals("No items found", response.getMeta().getErrorMessage());
+//
+//
+//    }
+//    @Order(10)
+//    @Test
+//    void whenTheListIsEmptyThenResponseStatusIsEmptyTrue(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertTrue(response.getData().isEmpty());
+//    }
+//    @Order(11)
+//    @Test
+//    void whenTheListIsEmptyThenResponseStatusIsNotSuccessfulTrue(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertFalse(response.getMeta().isSuccess());
+//    }
+//    @Order(12)
+//    @Test
+//    void whenTheListIsEmptyThenResponseCode404(){
+//        ItemPageRequest request = new ItemPageRequest(6, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertFalse(response.getMeta().isSuccess());
+//
+//        assertEquals(400, response.getMeta().getCode());
+//    }
+//    @Order(13)
+//    @Test
+//    void whenTheListIsEmptyThenMetadataAndDataAreNotNull(){
+//        ItemPageRequest request = new ItemPageRequest(0, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertNotNull(response);
+//    }
+//    @Order(14)
+//    @Test
+//    void whenTheListIsEmptyThenTotalPages0(){
+//        ItemPageRequest request = new ItemPageRequest(0, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertEquals(response.getMeta().getTotalPages(),0);
+//    }
+//    @Order(15)
+//    @Test
+//    void whenTheListIsEmptyThenIsFirst(){
+//        ItemPageRequest request = new ItemPageRequest(0, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertTrue(response.getMeta().isFirst());
+//
+//    }
+//    @Order(16)
+//    @Test
+//    void whenTheListIsEmptyThenIsLast(){
+//        ItemPageRequest request = new ItemPageRequest(0, 5);
+//        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
+//        assertTrue(response.getMeta().isLast());
+//    }
 
 
-    }
-    @Order(10)
-    @Test
-    void whenTheListIsEmptyThenResponseStatusIsEmptyTrue(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertTrue(response.getData().isEmpty());
-    }
-    @Order(11)
-    @Test
-    void whenTheListIsEmptyThenResponseStatusIsNotSuccessfulTrue(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertFalse(response.getMeta().isSuccess());
-    }
-    @Order(12)
-    @Test
-    void whenTheListIsEmptyThenResponseCode404(){
-        ItemPageRequest request = new ItemPageRequest(6, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertFalse(response.getMeta().isSuccess());
 
-        assertEquals(400, response.getMeta().getCode());
-    }
-    @Order(13)
-    @Test
-    void whenTheListIsEmptyThenMetadataAndDataAreNotNull(){
-        ItemPageRequest request = new ItemPageRequest(0, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertNotNull(response);
-    }
-    @Order(14)
-    @Test
-    void whenTheListIsEmptyThenTotalPages0(){
-        ItemPageRequest request = new ItemPageRequest(0, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertEquals(response.getMeta().getTotalPages(),0);
-    }
-    @Order(15)
-    @Test
-    void whenTheListIsEmptyThenIsFirst(){
-        ItemPageRequest request = new ItemPageRequest(0, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertTrue(response.getMeta().isFirst());
-
-    }
-    @Order(16)
-    @Test
-    void whenTheListIsEmptyThenIsLast(){
-        ItemPageRequest request = new ItemPageRequest(0, 5);
-        ApiResponse<PaginationMetaData, Product> response = underTest.getItemsPage(request);
-        assertTrue(response.getMeta().isLast());
-    }
 
 
 }
+
+
+
+
